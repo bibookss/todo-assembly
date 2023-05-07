@@ -2,30 +2,60 @@ section .text
     global _start
 
 _start:
-    ;call create_file
-    call print_prompt
-    call get_input
-    call print_item
+    ; create file
+    ; call create_file
+    ; close_file
 
-    call open_file_write
-    call write_file
+    ; print title
+    mov eax, 4
+    mov ebx, 1
+    mov ecx, title
+    mov edx, title_len
+    int 0x80
 
-    call print_prompt
-    call get_input
-    call print_item
+    ; print prompt
+    mov eax, 4
+    mov ebx, 1
+    mov ecx, prompt
+    mov edx, prompt_len
+    int 0x80
 
-    call write_file
+    ; call todo 5 times
+    call add_todo
+    call add_todo
+    call add_todo
+    call add_todo
+    call add_todo
 
-    call close_file
+    ; print to dos
+    mov eax, 4
+    mov ebx, 1
+    mov ecx, list_prompt
+    mov edx, list_prompt_len
+    int 0x80
 
-    call open_file_read
-    call print_file
+    call get_todos
 
-    call close_file
-
+    ; quit
     mov eax, 1
     xor ebx, ebx
     int 0x80
+    
+
+add_todo:
+    call get_input
+    call open_file_write
+    call write_file
+    call close_file
+
+    ret
+
+get_todos:
+    call open_file_read
+    call print_file
+    call close_file
+
+    ret
 
 open_file_write:
     mov eax, 5
@@ -41,10 +71,10 @@ open_file_write:
 open_file_read:
     mov eax, 5
     mov ebx, file_name
-    mov ecx, 0x0 ; read-only
-    mov edx, 0644 ; set file permission
+    mov ecx, 0x0 
+    mov edx, 0644 
     int 0x80
-    mov [fd], eax ; save file descriptor
+    mov [fd], eax 
     
     ret
 
@@ -56,18 +86,13 @@ print_file:
     int 0x80
 
     mov eax, 4
-    mov ebx, 1   ; stdout
+    mov ebx, 1  
     mov ecx, items
     int 0x80
 
 
 strlen:
-    ; input:
-    ; ecx - pointer to null-terminated string
-    ; output:
-    ; eax - length of string
-    
-    mov eax, 0  ; initialize length to 0
+    mov eax, 0 
     
     .loop:
         cmp byte [ecx], 0  ; check if current byte is null terminator
@@ -91,11 +116,12 @@ close_file:
 write_file:
     ; move file pointer to end of file
     mov eax, 19          ; system call for lseek
-    mov ebx, [fd]       ; file descriptor
+    mov ebx, [fd]        ; file descriptor
     mov ecx, 0           ; offset from end of file (0 bytes)
     mov edx, 2           ; seek from end of file
     int 0x80             ; call system
 
+    ; write item to file
     mov eax, 4
     mov ebx, [fd]
     mov ecx, item
@@ -105,12 +131,20 @@ write_file:
     ret
 
 get_input:
+    ; clear item buffer
+    mov edi, item
+    mov eax, 0
+    mov ecx, 100
+    rep stosb
+
+    ; get input
     mov eax, 3
     mov ebx, 0
     mov ecx, item
     mov edx, 100
     int 0x80
 
+    ; get length of input
     mov ecx, item
     call strlen
     mov [item_len], eax
@@ -118,6 +152,7 @@ get_input:
     ret
 
 print_item:
+    ; print item
     mov eax, 4
     mov ebx, 1
     mov ecx, item
@@ -154,12 +189,15 @@ print_prompt:
     ret
 
 section .data
-    title db "To Do:", 0xa
+    title db "TODO", 0xa
     title_len equ $-title
     
-    prompt db "1 - Add", 0xa, "2 - View List", 0xa, "3 - Quit", 0xa
+    prompt db "Enter 5 todos: ", 0xa
     prompt_len equ $-prompt
     
+    list_prompt db "Your todos: ", 0xa
+    list_prompt_len equ $-list_prompt
+
     file_name db "test.txt", 0
     file_name_len equ $-file_name
 
@@ -168,8 +206,7 @@ section .data
 
     items times 1024 db 0
 
-    newline db 0xa
-
+    counter db 1
 
 section .bss
     fd resb 1
