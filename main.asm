@@ -18,6 +18,11 @@ _start:
 
     call close_file
 
+    call open_file_read
+    call print_file
+
+    call close_file
+
     mov eax, 1
     xor ebx, ebx
     int 0x80
@@ -32,6 +37,29 @@ open_file_write:
     mov [fd], eax
 
     ret
+
+open_file_read:
+    mov eax, 5
+    mov ebx, file_name
+    mov ecx, 0x0 ; read-only
+    mov edx, 0644 ; set file permission
+    int 0x80
+    mov [fd], eax ; save file descriptor
+    
+    ret
+
+print_file:
+    mov eax, 3
+    mov ebx, [fd]
+    mov ecx, items
+    mov edx, 1024
+    int 0x80
+
+    mov eax, 4
+    mov ebx, 1   ; stdout
+    mov ecx, items
+    int 0x80
+
 
 strlen:
     ; input:
@@ -137,6 +165,8 @@ section .data
 
     item times 100 db 0
     item_len dd 0
+
+    items times 1024 db 0
 
     newline db 0xa
 
